@@ -6,14 +6,17 @@ export default class MainScene extends Phaser.Scene{
     }
     preload(){
       Player.preload(this);
+        this.load.image('tiles','assets/images/tilemap.png');
+        this.load.tilemapTiledJSON('map','assets/images/map.json');
     }
     create() {
-        console.log("create");
+        const map = this.make.tilemap({key:'map'});
+        const tileset = map.addTilesetImage('tilemap','tiles');
+        const layer1 = map.createLayer('Tile Layer 1',tileset,0,0);
         
         this.matter.world.setBounds(0, 0, 2000, 2000);
 
         this.player = new Player({scene: this, x: 1000, y: 1000, texture: 'you', frame: 'knight_idle_1'});
-        let textPlayer = new Player({scene: this, x: 1200, y: 1200, texture: 'you', frame: 'knight_idle_1'});
 
         this.player.inputKeys = this.input.keyboard.addKeys({
             up: Phaser.Input.Keyboard.KeyCodes.W,
