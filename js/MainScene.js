@@ -20,6 +20,8 @@ export default class MainScene extends Phaser.Scene{
             console.warn("Failed to load required tileset: tilemap");
         }
         
+        let layer1 = null;
+        let wallLayer = null;
         map.layers.forEach(layer => {
             if (layer) {
                 try {
@@ -31,6 +33,12 @@ export default class MainScene extends Phaser.Scene{
                                 tile.index = -1; 
                             }
                         });
+                        
+                        if (layer.name === 'Tile Layer 1') {
+                            layer1 = createdLayer;
+                        } else if (layer.name === 'walls') {
+                            wallLayer = createdLayer;
+                        }
                     }
                 } catch (e) {
                     console.warn("Failed to create layer:", layer.name, e.message);
@@ -39,6 +47,14 @@ export default class MainScene extends Phaser.Scene{
         });
         
         this.matter.world.setBounds(0, 0, 2000, 2000);
+        if (layer1) {
+            layer1.setCollisionByProperty({collide:true});
+            this.matter.world.convertTilemapLayer(layer1);
+        }
+        if (wallLayer) {
+            wallLayer.setCollisionByProperty({collide:true});
+            this.matter.world.convertTilemapLayer(wallLayer);
+        }
 
         this.player = new Player({scene: this, x: 32, y: 32, texture: 'you', frame: 'knight_idle_1'});
 
