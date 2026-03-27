@@ -1,39 +1,25 @@
+import Player from "./player.js";
+
 export default class MainScene extends Phaser.Scene{
     constructor(){
         super("MainScene");
     }
     preload(){
-        console.log("preload");
-        this.load.atlas('you','assets/images/you.png','assets/images/you_atlas.json');
-        this.load.animation('you_anim','assets/images/you_anim.json');
+      Player.preload(this);
     }
-    create(){
+    create() {
         console.log("create");
-        this.player = new Phaser.Physics.Matter.Sprite(this.matter.world,0,0,'you','knight_idle_1');
-        this.add.existing(this.player);
-        this.inputKeys = this.input.keyboard.addKeys({
+        this.player = new Player({scene: this, x: 0, y: 0, texture: 'you', frame: 'knight_idle_1'});
+        this.player.inputKeys = this.input.keyboard.addKeys({
             up: Phaser.Input.Keyboard.KeyCodes.W,
             down: Phaser.Input.Keyboard.KeyCodes.S,
             left: Phaser.Input.Keyboard.KeyCodes.A,
             right: Phaser.Input.Keyboard.KeyCodes.D,
         })
     }
+
     update(){
-        this.player.anims.play('hero_walk',true);
-        const speed = 2.5;
-        let playerVelocity= new Phaser.Math.Vector2();
-        if(this.inputKeys.left.isDown){
-            playerVelocity.x= -1;
-        } else if (this.inputKeys.right.isDown){
-            playerVelocity.x=1;
-        }
-        if(this.inputKeys.up.isDown){
-            playerVelocity.y= -1;
-        } else if (this.inputKeys.down.isDown){
-            playerVelocity.y=1;
-        }
-        playerVelocity.normalize();
-        playerVelocity.scale(speed);
-        this.player.setVelocity(playerVelocity.x,playerVelocity.y);
+        this.player.update();
     }
 }
+

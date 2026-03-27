@@ -11,7 +11,7 @@ if (!matterCollisionPlugin) {
 const config = {
     width:512,
     height:512,
-    backgroundColor: '#333333',
+    backgroundColor: '#fcfbbc',
     type: Phaser.AUTO,
     parent:'survival-game',
     scene: [MainScene],
