@@ -1,5 +1,8 @@
 {
   "dependencies": {
-    "phaser-matter-collision-plugin": "^1.0.0"
+    "canvas": "^3.2.2",
+    "image-size": "^2.0.2",
+    "phaser-matter-collision-plugin": "^1.0.0",
+    "sharp": "^0.34.5"
   }
 }

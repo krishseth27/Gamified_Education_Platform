@@ -9,7 +9,7 @@ if (!matterCollisionPlugin) {
 }
 
 const config = {
-    width:512,
+    width:1024,
     height:512,
     backgroundColor: '#fcfbbc',
     type: Phaser.AUTO,

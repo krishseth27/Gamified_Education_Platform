@@ -11,12 +11,36 @@ export default class MainScene extends Phaser.Scene{
     }
     create() {
         const map = this.make.tilemap({key:'map'});
-        const tileset = map.addTilesetImage('tilemap','tiles');
-        const layer1 = map.createLayer('Tile Layer 1',tileset,0,0);
+        
+        const activeTilesets = [];
+        const baseTileset = map.addTilesetImage('tilemap', 'tiles');
+        if (baseTileset) {
+            activeTilesets.push(baseTileset);
+        } else {
+            console.warn("Failed to load required tileset: tilemap");
+        }
+        
+        map.layers.forEach(layer => {
+            if (layer) {
+                try {
+                    const createdLayer = map.createLayer(layer.name, activeTilesets, 0, 0);
+                    // Filter out bad GIDs to prevent WebGL crash for missing external tilesets
+                    if (createdLayer) {
+                        createdLayer.forEachTile(tile => {
+                            if (tile.index > 0 && !activeTilesets.some(ts => ts.containsTileIndex(tile.index))) {
+                                tile.index = -1; 
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.warn("Failed to create layer:", layer.name, e.message);
+                }
+            }
+        });
         
         this.matter.world.setBounds(0, 0, 2000, 2000);
 
-        this.player = new Player({scene: this, x: 1000, y: 1000, texture: 'you', frame: 'knight_idle_1'});
+        this.player = new Player({scene: this, x: 32, y: 32, texture: 'you', frame: 'knight_idle_1'});
 
         this.player.inputKeys = this.input.keyboard.addKeys({
             up: Phaser.Input.Keyboard.KeyCodes.W,
@@ -25,7 +49,7 @@ export default class MainScene extends Phaser.Scene{
             right: Phaser.Input.Keyboard.KeyCodes.D,
         });
 
-        this.cameras.main.setBounds(0, 0, 2000, 2000);
+        this.cameras.main.setBounds(0, 0, 2048, 2048);
         this.cameras.main.startFollow(this.player, false, 0.1, 0.1);
 
         this.time.addEvent({
