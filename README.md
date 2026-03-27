@@ -1,4 +1,4 @@
-# Flameroar 🔥⚔️
+# FlameRoar 🔥⚔️
 
 **The RPG where learning DSA feels like slaying dragons.**
  
