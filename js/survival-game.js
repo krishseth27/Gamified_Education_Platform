@@ -9,14 +9,16 @@ if (!matterCollisionPlugin) {
 }
 
 const config = {
-    width:512,
+    width:1024,
     height:512,
     backgroundColor: '#fcfbbc',
     type: Phaser.AUTO,
     parent:'survival-game',
     scene: [MainScene],
-    scale:{
-        zoom:2,
+    scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        zoom: 2
     },
     physics: {
         default:'matter',

@@ -10,6 +10,8 @@ export default class MainScene extends Phaser.Scene{
     create() {
         console.log("create");
         this.player = new Player({scene: this, x: 0, y: 0, texture: 'you', frame: 'knight_idle_1'});
+        let textPlayer = new Player({scene: this, x:200, y: 200, texture: 'you', frame: 'knight_idle_1'});
+
         this.player.inputKeys = this.input.keyboard.addKeys({
             up: Phaser.Input.Keyboard.KeyCodes.W,
             down: Phaser.Input.Keyboard.KeyCodes.S,
