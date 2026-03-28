@@ -164,7 +164,7 @@ backdropFilter:"blur(4px)"
   </div>
 
   {/* Escape */}
-  <button onClick={onClose} style={{
+  <button onClick={() => { onClose(); window.dispatchEvent(new CustomEvent('phaser-resume')); }} style={{
     marginTop:24,
     color:"#aaa",
     background:"#222",

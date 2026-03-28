@@ -4,6 +4,10 @@ import { EventBus } from "../src/game/EventBus.js";
 export default class MainScene extends Phaser.Scene{
     constructor(){
         super("MainScene");
+        this.isInteractionLocked = false;
+        this.lastTriggerTime = 0;
+        this.lastSignTime = 0;
+        this.triggerCooldown = 2000;
     }
     preload(){
       Player.preload(this);
@@ -87,10 +91,17 @@ export default class MainScene extends Phaser.Scene{
         const signZone1 = createSensor(350, 200, 80, 80, 'signZone1');
         const signZone2 = createSensor(600, 400, 80, 80, 'signZone2');
 
-        let lastTriggerTime = 0;
-        let lastSignTime = 0;
+        // Listen for phaser-resume from React
+        window.addEventListener('phaser-resume', () => {
+            this.handleResume();
+        });
         
         this.matter.world.on('collisionactive', (event) => {
+            // Skip collision handling if locked
+            if (this.isInteractionLocked || this.player.isInteractionLocked) {
+                return;
+            }
+
             const pairs = event.pairs;
             for (let i = 0; i < pairs.length; i++) {
                 const bodyA = pairs[i].bodyA;
@@ -102,31 +113,31 @@ export default class MainScene extends Phaser.Scene{
                 if (isPlayer) {
                     const now = this.time.now;
                     
-                    // Interaction requires 'E' or Space for signs
+                    // Interaction requires 'E' or Space for signs - no bounce, just toast
                     if ((isTrigger('signZone1') || isTrigger('signZone2'))) {
                         if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)) || 
                             Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E))) {
-                            if (now - lastSignTime > 1000) {
-                                lastSignTime = now;
+                            if (now - this.lastSignTime > 1000) {
+                                this.lastSignTime = now;
                                 const text = isTrigger('signZone1') ? "Learning path this way!" : "Warning: Boss ahead!";
                                 EventBus.emit('show-toast', text);
                             }
                         }
                     }
 
-                    if (now - lastTriggerTime < 2000) continue; // Cooldown for main events
+                    if (now - this.lastTriggerTime < this.triggerCooldown) continue; // Cooldown for main events
 
                     if (isTrigger('npcZone')) {
-                        lastTriggerTime = now;
-                        this.bouncePlayer();
+                        this.lastTriggerTime = now;
+                        this.lockForInteraction();
                         EventBus.emit('npc-trigger');
                     } else if (isTrigger('battleZone')) {
-                        lastTriggerTime = now;
-                        this.bouncePlayer();
+                        this.lastTriggerTime = now;
+                        this.lockForInteraction();
                         EventBus.emit('trigger-battle');
                     } else if (isTrigger('bossZone')) {
-                        lastTriggerTime = now;
-                        this.bouncePlayer();
+                        this.lastTriggerTime = now;
+                        this.lockForInteraction();
                         EventBus.emit('boss-trigger');
                         // Optional camera drama
                         this.cameras.main.zoomTo(2.0, 1000, 'Sine.easeInOut');
@@ -164,10 +175,36 @@ export default class MainScene extends Phaser.Scene{
         });
     }
 
+    lockForInteraction() {
+        this.isInteractionLocked = true;
+        this.player.lockInteraction();
+    }
+
+    handleResume() {
+        // Clear velocity
+        this.player.setVelocity(0, 0);
+        
+        // Reset keyboard state
+        this.input.keyboard.resetKeys();
+        
+        // Move to safe position if needed
+        this.player.moveToSafePosition();
+        
+        // Unlock after short cooldown
+        this.time.delayedCall(200, () => {
+            this.isInteractionLocked = false;
+            this.player.unlockInteraction();
+            this.lastTriggerTime = this.time.now; // Reset cooldown timer
+        });
+    }
+
     triggerEncounter() {
+        // Don't trigger if locked
+        if (this.isInteractionLocked || this.player.isInteractionLocked) return;
+
         const now = this.time.now;
         // Don't trigger if recently had an event (give 5s breathing room)
-        if (now - lastTriggerTime < 5000) return;
+        if (now - this.lastTriggerTime < 5000) return;
         
         // Only trigger if player is moving
         const velocity = this.player.body.velocity;
@@ -176,17 +213,12 @@ export default class MainScene extends Phaser.Scene{
             if (this.player.x > 250 || this.player.y > 250) {
                 // 30% chance to trigger battle
                 if (Math.random() < 0.3) {
-                    lastTriggerTime = now;
+                    this.lastTriggerTime = now;
+                    this.lockForInteraction();
                     EventBus.emit('trigger-battle');
                 }
             }
         }
-    }
-
-    bouncePlayer() {
-        const velX = this.player.body.velocity.x > 0 ? -2 : 2;
-        const velY = this.player.body.velocity.y > 0 ? -2 : 2;
-        this.player.setPosition(this.player.x + (velX * 10), this.player.y + (velY * 10));
     }
 
     update(){

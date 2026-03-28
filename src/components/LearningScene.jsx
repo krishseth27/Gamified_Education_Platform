@@ -68,7 +68,7 @@ zIndex:60,display:"flex"
       </div>
     ))}
 
-    <button onClick={onBack} style={{marginTop:10}}>
+    <button onClick={() => { onBack(); window.dispatchEvent(new CustomEvent('phaser-resume')); }} style={{marginTop:10}}>
       Back
     </button>
   </div>

@@ -173,7 +173,7 @@ export default function BossScene({ player, onWin, onClose }) {
       </div>
 
       {/* Escape */}
-      <button onClick={onClose} style={{
+      <button onClick={() => { onClose(); window.dispatchEvent(new CustomEvent('phaser-resume')); }} style={{
         marginTop:24,
         color:"#ffaaaa",
         background:"transparent",

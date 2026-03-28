@@ -58,17 +58,20 @@ const xp = player.level * 10;
 addXP(xp);
 setToast(`+${xp} XP`);
 setScene("world");
+window.dispatchEvent(new CustomEvent('phaser-resume'));
 };
 
 const handleLose = ()=>{
 setToast("Wrong! Study more");
 setScene("learn");
+window.dispatchEvent(new CustomEvent('phaser-resume'));
 };
 
 const handleBossWin = () => {
     const xp = player.level * 50;
     addXP(xp);
     setScene("win");
+    window.dispatchEvent(new CustomEvent('phaser-resume'));
 };
 
 const handleRestart = () => {
@@ -141,7 +144,7 @@ onLearn={()=>setScene("learn")}
       <div style={{background:"#111",padding:"32px",borderRadius:"12px",border:"2px solid #333",color:"#fff",textAlign:"center"}}>
         <h2 style={{color:"#4ade80",marginBottom:"16px"}}>Old Wise Knight</h2>
         <p style={{marginBottom:"24px"}}>Hero! Answer questions to prove you're ready for the forest.</p>
-        <button onClick={()=>setScene("world")} style={{padding:"8px 24px",background:"#4ade80",color:"#000",border:"none",borderRadius:"6px",fontWeight:"bold",cursor:"pointer"}}>
+        <button onClick={()=>{setScene("world"); window.dispatchEvent(new CustomEvent('phaser-resume'));}} style={{padding:"8px 24px",background:"#4ade80",color:"#000",border:"none",borderRadius:"6px",fontWeight:"bold",cursor:"pointer"}}>
           Continue
         </button>
       </div>
