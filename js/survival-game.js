@@ -9,7 +9,7 @@ if (!matterCollisionPlugin) {
 }
 
 const config = {
-    width:1024,
+    width:512,
     height:512,
     backgroundColor: '#fcfbbc',
     type: Phaser.AUTO,
@@ -23,7 +23,7 @@ const config = {
     physics: {
         default:'matter',
         matter: {
-            debug: true,
+            debug: false,
             gravity:{y:0},
         }
     },

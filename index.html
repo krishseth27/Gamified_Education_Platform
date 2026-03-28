@@ -8,12 +8,29 @@
       <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.js"></script>
 
       <script src="https://cdn.jsdelivr.net/npm/phaser-matter-collision-plugin"></script>
+      <style>
+        /* Ensure the Phaser game sits behind React UI and fills screen */
+        #survival-game {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+        }
+        #root {
+            position: absolute;
+            inset: 0;
+            z-index: 10;
+            pointer-events: none; /* Let clicks pass through to Phaser canvas */
+        }
+        /* Enable clicks on React UI elements specifically */
+        #root > div > * {
+            pointer-events: auto;
+        }
+      </style>
   </head>
   <body>
-    <div id="root">
-        <div id="survival-game"></div>
-    </div>
+    <div id="survival-game"></div>
+    <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
-    <script type = "module" src = "js/survival-game.js"></script>
+    <script type="module" src="/js/survival-game.js"></script>
   </body>
 </html>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { SAMPLE_QUESTIONS } from "../game/questions";
 import { REGIONS } from "../game/constants";
+import { EventBus } from "../game/EventBus";
 
 const Scanlines = () => (
 
@@ -50,9 +51,11 @@ setSelected(idx);
 
 if (idx === q.ans) {
   setResult("correct");
+  EventBus.emit('answer-correct');
   setTimeout(() => onWin(), 1500);
 } else {
   setResult("wrong");
+  EventBus.emit('answer-wrong');
   setTimeout(() => onLose(), 1800);
 }
 
@@ -61,39 +64,44 @@ if (idx === q.ans) {
 
 return (
 <div style={{
-position:"absolute",inset:0,background:"#000d00",
+position:"absolute",inset:0,background:"rgba(0,0,0,0.8)",
 display:"flex",flexDirection:"column",
 alignItems:"center",justifyContent:"center",
-zIndex:60,
+zIndex:60, fontFamily:"var(--sans)",
+backdropFilter:"blur(4px)"
 }}> <Scanlines/>
 
 
   {/* Header */}
-  <div style={{color:"#4ade80",marginBottom:20,fontSize:14}}>
+  <div style={{color:"var(--accent)",marginBottom:20,fontSize:"1.5rem",fontFamily:"var(--heading)",fontWeight:"bold"}}>
     ⚔ BATTLE ⚔
   </div>
 
   {/* Enemy */}
   <div style={{fontSize:50,marginBottom:10}}>
-    {region==="arrays"?"🌲":region==="loops"?"🌀":"⚗️"}
+    {region==="arrays"?"🌲":region==="loops"?"🕷":"🐉"}
   </div>
 
-  <div style={{color:"#86efac",marginBottom:20}}>
+  <div style={{color:"var(--text-h)",marginBottom:20,fontSize:"1.2rem"}}>
     {REGIONS.find(r=>r.id===region)?.name}
   </div>
 
   {/* Question Box */}
   <div style={{
     width:"min(500px,90%)",
-    background:"#001a00",
-    border:"2px solid #4ade80",
-    padding:20
+    background:"#111",
+    border:"2px solid #333",
+    borderRadius:"12px",
+    boxShadow:"0 0 20px rgba(0,0,0,0.8)",
+    padding:"24px",
+    position:"relative",
+    zIndex:70
   }}>
     {loading ? (
-      <div style={{color:"#4ade80"}}>Loading...</div>
+      <div style={{color:"#4ade80",textAlign:"center",fontWeight:"bold"}}>Loading Enemy...</div>
     ) : (
       <>
-        <div style={{color:"#e2e8f0",marginBottom:20}}>
+        <div style={{color:"#fff",marginBottom:20,fontSize:"1.1rem",lineHeight:"1.5"}}>
           {typeText}
         </div>
 
@@ -102,25 +110,35 @@ zIndex:60,
             display:"block",
             width:"100%",
             marginBottom:10,
-            padding:10,
+            padding:12,
             cursor:"pointer",
-            border:"1px solid #374151",
-            background:"#002200",
-            color:"#9ca3af"
+            border:"1px solid #444",
+            borderRadius:"6px",
+            background:"#222",
+            color:"#ddd",
+            transition:"all 0.2s",
+            fontFamily:"var(--sans)",
+            fontSize:"1rem",
+            textAlign:"left"
           };
 
           if (selected === i) {
             if (i === q.ans) {
-              style.background = "#003d2d";
+              style.background = "#rgba(74, 222, 128, 0.2)";
               style.color = "#4ade80";
+              style.borderColor = "#4ade80";
             } else {
-              style.background = "#3d0000";
-              style.color = "#f87171";
+              style.background = "rgba(225, 29, 72, 0.2)";
+              style.color = "#e11d48";
+              style.borderColor = "#fda4af";
             }
           }
 
           return (
-            <button key={i} onClick={()=>choose(i)} style={style}>
+            <button key={i} onClick={()=>choose(i)} style={style}
+              onMouseOver={e => {if(selected===null) e.currentTarget.style.borderColor="#666"}}
+              onMouseOut={e => {if(selected===null) e.currentTarget.style.borderColor="#444"}}
+            >
               {opt}
             </button>
           );
@@ -128,11 +146,15 @@ zIndex:60,
 
         {result && (
           <div style={{
-            marginTop:10,
-            color: result==="correct" ? "#4ade80" : "#f87171"
+            marginTop:16, padding:"12px", borderRadius:"6px",
+            background: result==="correct" ? "rgba(74, 222, 128, 0.1)" : "rgba(225, 29, 72, 0.1)",
+            color: result==="correct" ? "#4ade80" : "#e11d48",
+            border: `1px solid ${result==="correct" ? "#4ade80" : "#fda4af"}`
           }}>
-            {result==="correct" ? "Correct!" : "Wrong!"}
-            <div style={{marginTop:6,fontSize:12}}>
+            <div style={{fontWeight:"bold",marginBottom:"4px"}}>
+              {result==="correct" ? "CORRECT!" : "Try again"}
+            </div>
+            <div style={{fontSize:"0.9rem"}}>
               {q.explanation}
             </div>
           </div>
@@ -143,12 +165,21 @@ zIndex:60,
 
   {/* Escape */}
   <button onClick={onClose} style={{
-    marginTop:15,
-    color:"#6b7280",
-    background:"transparent",
-    border:"1px solid #374151"
-  }}>
-    Run
+    marginTop:24,
+    color:"#aaa",
+    background:"#222",
+    border:"1px solid #444",
+    padding:"8px 24px",
+    borderRadius:"6px",
+    cursor:"pointer",
+    fontFamily:"var(--sans)",
+    position:"relative",
+    zIndex:70
+  }}
+  onMouseOver={e => e.currentTarget.style.background="#333"}
+  onMouseOut={e => e.currentTarget.style.background="#222"}
+  >
+    Run Away
   </button>
 </div>
 
