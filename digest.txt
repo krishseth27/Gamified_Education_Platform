@@ -22983,6 +22983,10 @@ import { EventBus } from "../src/game/EventBus.js";
 export default class MainScene extends Phaser.Scene{
     constructor(){
         super("MainScene");
+        this.isInteractionLocked = false;
+        this.lastTriggerTime = 0;
+        this.lastSignTime = 0;
+        this.triggerCooldown = 2000;
     }
     preload(){
       Player.preload(this);
@@ -23066,10 +23070,17 @@ export default class MainScene extends Phaser.Scene{
         const signZone1 = createSensor(350, 200, 80, 80, 'signZone1');
         const signZone2 = createSensor(600, 400, 80, 80, 'signZone2');
 
-        let lastTriggerTime = 0;
-        let lastSignTime = 0;
+        // Listen for phaser-resume from React
+        window.addEventListener('phaser-resume', () => {
+            this.handleResume();
+        });
         
         this.matter.world.on('collisionactive', (event) => {
+            // Skip collision handling if locked
+            if (this.isInteractionLocked || this.player.isInteractionLocked) {
+                return;
+            }
+
             const pairs = event.pairs;
             for (let i = 0; i < pairs.length; i++) {
                 const bodyA = pairs[i].bodyA;
@@ -23081,31 +23092,31 @@ export default class MainScene extends Phaser.Scene{
                 if (isPlayer) {
                     const now = this.time.now;
                     
-                    // Interaction requires 'E' or Space for signs
+                    // Interaction requires 'E' or Space for signs - no bounce, just toast
                     if ((isTrigger('signZone1') || isTrigger('signZone2'))) {
                         if (Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)) || 
                             Phaser.Input.Keyboard.JustDown(this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E))) {
-                            if (now - lastSignTime > 1000) {
-                                lastSignTime = now;
+                            if (now - this.lastSignTime > 1000) {
+                                this.lastSignTime = now;
                                 const text = isTrigger('signZone1') ? "Learning path this way!" : "Warning: Boss ahead!";
                                 EventBus.emit('show-toast', text);
                             }
                         }
                     }
 
-                    if (now - lastTriggerTime < 2000) continue; // Cooldown for main events
+                    if (now - this.lastTriggerTime < this.triggerCooldown) continue; // Cooldown for main events
 
                     if (isTrigger('npcZone')) {
-                        lastTriggerTime = now;
-                        this.bouncePlayer();
+                        this.lastTriggerTime = now;
+                        this.lockForInteraction();
                         EventBus.emit('npc-trigger');
                     } else if (isTrigger('battleZone')) {
-                        lastTriggerTime = now;
-                        this.bouncePlayer();
+                        this.lastTriggerTime = now;
+                        this.lockForInteraction();
                         EventBus.emit('trigger-battle');
                     } else if (isTrigger('bossZone')) {
-                        lastTriggerTime = now;
-                        this.bouncePlayer();
+                        this.lastTriggerTime = now;
+                        this.lockForInteraction();
                         EventBus.emit('boss-trigger');
                         // Optional camera drama
                         this.cameras.main.zoomTo(2.0, 1000, 'Sine.easeInOut');
@@ -23143,10 +23154,36 @@ export default class MainScene extends Phaser.Scene{
         });
     }
 
+    lockForInteraction() {
+        this.isInteractionLocked = true;
+        this.player.lockInteraction();
+    }
+
+    handleResume() {
+        // Clear velocity
+        this.player.setVelocity(0, 0);
+        
+        // Reset keyboard state
+        this.input.keyboard.resetKeys();
+        
+        // Move to safe position if needed
+        this.player.moveToSafePosition();
+        
+        // Unlock after short cooldown
+        this.time.delayedCall(200, () => {
+            this.isInteractionLocked = false;
+            this.player.unlockInteraction();
+            this.lastTriggerTime = this.time.now; // Reset cooldown timer
+        });
+    }
+
     triggerEncounter() {
+        // Don't trigger if locked
+        if (this.isInteractionLocked || this.player.isInteractionLocked) return;
+
         const now = this.time.now;
         // Don't trigger if recently had an event (give 5s breathing room)
-        if (now - lastTriggerTime < 5000) return;
+        if (now - this.lastTriggerTime < 5000) return;
         
         // Only trigger if player is moving
         const velocity = this.player.body.velocity;
@@ -23155,17 +23192,12 @@ export default class MainScene extends Phaser.Scene{
             if (this.player.x > 250 || this.player.y > 250) {
                 // 30% chance to trigger battle
                 if (Math.random() < 0.3) {
-                    lastTriggerTime = now;
+                    this.lastTriggerTime = now;
+                    this.lockForInteraction();
                     EventBus.emit('trigger-battle');
                 }
             }
         }
-    }
-
-    bouncePlayer() {
-        const velX = this.player.body.velocity.x > 0 ? -2 : 2;
-        const velY = this.player.body.velocity.y > 0 ? -2 : 2;
-        this.player.setPosition(this.player.x + (velX * 10), this.player.y + (velY * 10));
     }
 
     update(){
@@ -23193,6 +23225,43 @@ export default class Player extends Phaser.Physics.Matter.Sprite{
         });
         this.setExistingBody(compoundBody);
         this.setFixedRotation();
+
+        // Interaction lock state
+        this.isInteractionLocked = false;
+        this.lastSafePosition = { x: this.x, y: this.y };
+        this.resumeCooldown = false;
+    }
+
+    lockInteraction() {
+        this.isInteractionLocked = true;
+        this.lastSafePosition = { x: this.x, y: this.y };
+        this.setVelocity(0, 0);
+    }
+
+    unlockInteraction() {
+        this.resumeCooldown = true;
+        this.setVelocity(0, 0);
+        
+        // Reset keyboard state
+        if (this.inputKeys) {
+            Object.values(this.inputKeys).forEach(key => {
+                key.isDown = false;
+                key.reset();
+            });
+        }
+        
+        // Short cooldown before fully unlocking
+        this.scene.time.delayedCall(150, () => {
+            this.isInteractionLocked = false;
+            this.resumeCooldown = false;
+        });
+    }
+
+    moveToSafePosition() {
+        if (this.lastSafePosition) {
+            this.setPosition(this.lastSafePosition.x, this.lastSafePosition.y);
+            this.setVelocity(0, 0);
+        }
     }
 
     static preload(scene){
@@ -23205,6 +23274,13 @@ export default class Player extends Phaser.Physics.Matter.Sprite{
     }
 
     update(){
+        // If locked, stop all movement and return immediately
+        if (this.isInteractionLocked || this.resumeCooldown) {
+            this.setVelocity(0, 0);
+            this.anims.play('hero_idle', true);
+            return;
+        }
+
         const speed = 2.5;
         let playerVelocity= new Phaser.Math.Vector2();
         if(this.inputKeys.left.isDown){
@@ -23220,6 +23296,12 @@ export default class Player extends Phaser.Physics.Matter.Sprite{
         playerVelocity.normalize();
         playerVelocity.scale(speed);
         this.setVelocity(playerVelocity.x,playerVelocity.y);
+
+        // Update last safe position while moving normally
+        if (Math.abs(playerVelocity.x) > 0.1 || Math.abs(playerVelocity.y) > 0.1) {
+            this.lastSafePosition = { x: this.x, y: this.y };
+        }
+
         if ((Math.abs(this.Velocity.x)>0.1) || (Math.abs(this.Velocity.y)>0.1)){
            this.anims.play('hero_walk',true);
         }else{
@@ -23530,17 +23612,20 @@ const xp = player.level * 10;
 addXP(xp);
 setToast(`+${xp} XP`);
 setScene("world");
+window.dispatchEvent(new CustomEvent('phaser-resume'));
 };
 
 const handleLose = ()=>{
 setToast("Wrong! Study more");
 setScene("learn");
+window.dispatchEvent(new CustomEvent('phaser-resume'));
 };
 
 const handleBossWin = () => {
     const xp = player.level * 50;
     addXP(xp);
     setScene("win");
+    window.dispatchEvent(new CustomEvent('phaser-resume'));
 };
 
 const handleRestart = () => {
@@ -23613,7 +23698,7 @@ onLearn={()=>setScene("learn")}
       <div style={{background:"#111",padding:"32px",borderRadius:"12px",border:"2px solid #333",color:"#fff",textAlign:"center"}}>
         <h2 style={{color:"#4ade80",marginBottom:"16px"}}>Old Wise Knight</h2>
         <p style={{marginBottom:"24px"}}>Hero! Answer questions to prove you're ready for the forest.</p>
-        <button onClick={()=>setScene("world")} style={{padding:"8px 24px",background:"#4ade80",color:"#000",border:"none",borderRadius:"6px",fontWeight:"bold",cursor:"pointer"}}>
+        <button onClick={()=>{setScene("world"); window.dispatchEvent(new CustomEvent('phaser-resume'));}} style={{padding:"8px 24px",background:"#4ade80",color:"#000",border:"none",borderRadius:"6px",fontWeight:"bold",cursor:"pointer"}}>
           Continue
         </button>
       </div>
@@ -23903,7 +23988,7 @@ zIndex:60,display:"flex"
       </div>
     ))}
 
-    <button onClick={onBack} style={{marginTop:10}}>
+    <button onClick={() => { onBack(); window.dispatchEvent(new CustomEvent('phaser-resume')); }} style={{marginTop:10}}>
       Back
     </button>
   </div>
