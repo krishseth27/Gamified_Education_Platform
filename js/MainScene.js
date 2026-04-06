@@ -11,8 +11,8 @@ export default class MainScene extends Phaser.Scene{
     }
     preload(){
       Player.preload(this);
-        this.load.image('tiles', '/assets/images/tilemap.png');
-        this.load.tilemapTiledJSON('map', '/assets/images/map.json');
+        this.load.image('tiles', 'assets/game_images/tilemap.png');
+        this.load.tilemapTiledJSON('map', 'assets/game_images/map.json');
     }
     create() {
         const map = this.make.tilemap({key:'map'});
